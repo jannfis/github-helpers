@@ -43,6 +43,9 @@ VERIFY_LABEL="needs-verification"
 # Whether dry run is true
 DRY_RUN=false
 
+# We only consider PRs with following prefixes
+PREFIXES = ["feat", "fix"]
+
 if ARGV.length != 1
     STDERR.puts "Usage: #{$0} <since>"
     exit 1
@@ -78,6 +81,16 @@ def has_label?(labels, label)
     return false
 end
 
+def needs_verification?(pr)
+  title = pr.title.downcase
+  PREFIXES.each do |prefix|
+    if title.start_with?("#{prefix}:")
+      return true
+    end
+  end
+  return false
+end
+
 # Some caches
 user_orgs = {}
 pr_authors = {}
@@ -94,7 +107,7 @@ prs = client.pull_requests(REPO_NAME,
 )
 
 prs.each do |pr|
-    if !pr.merged_at.nil? && pr.merged_at > since && (pr.title.start_with?("feat:") || pr.title.start_with?("fix:")) #|| pr.title.start_with?("chore:"))
+    if !pr.merged_at.nil? && pr.merged_at > since && needs_verification?(pr)
         if !user_orgs.has_key?(pr.user.login)
             user_orgs[pr.user.login] = is_user_in_argoorg?(client, pr.user.login)
         end
